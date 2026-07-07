@@ -14,6 +14,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write # For OIDC
     steps:
       -
         name: Checkout
@@ -39,6 +40,21 @@ jobs:
           file: Dockerfile-znver4
           push: true
           tags: |
-            ghcr.io/bopp-os/cachyos-docker/cachyos-znver4:znver4
-            ghcr.io/bopp-os/cachyos-docker/cachyos-znver4:znver4-latest
             ghcr.io/bopp-os/cachyos-docker/cachyos-znver4:latest
+            ghcr.io/bopp-os/cachyos-docker/cachyos:znver4
+            ghcr.io/bopp-os/cachyos-docker/cachyos:znver4-latest
+      -
+        name: Set up Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.2.0' # Use a specific Cosign release version
+      -
+        name: Sign the published Docker image
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+          COSIGN_PASSWORD: ${{ secrets.SIGNING_SECRET }}
+        run: |
+          for TAG in "ghcr.io/bopp-os/cachyos-docker/cachyos-znver4:latest" "ghcr.io/bopp-os/cachyos-docker/cachyos:znver4" "ghcr.io/bopp-os/cachyos-docker/cachyos:znver4-latest"
+          do
+            cosign sign --yes $TAG
+          done
